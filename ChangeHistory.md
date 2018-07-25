@@ -8,10 +8,13 @@ Here is a link to the [Git diffs](https://github.com/krlawrence/graph/compare/v2
 
 - Broke out the discussion of simulating `startsWith` into its own section.
 - Added to the discussion of `cyclicPath`.
+- Added text to explain the "__." notation the first time it appears #112.
 - Expanded the section that introduces the `path` step #97, #98, #99.
 - Added text to better introduce the concept of a `modulator` #99 .
 - Added text to introduce the phrase `anonymous traversal` #98
 - Expanded the section covering the `cyclicPath` step.
+- Expanded the discussion of randomly walking a graph. #105
+- Added coverage of the `Direction` Enum. #114
 - Expanded and improved the `Calculating vertex degree` section.
 - Added the `Cardinality` enum to the tables in section 6.1.5 #110.
 - Miscellaneous minor wording updates and corrections.

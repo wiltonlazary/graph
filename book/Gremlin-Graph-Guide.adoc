@@ -1,9 +1,9 @@
 PRACTICAL GREMLIN: An Apache TinkerPop Tutorial
 ===============================================
 Kelvin R. Lawrence <gfxman@yahoo.com>
-v280-preview, July 11, 2018
+v280-preview, July 22, 2018
 // v279 (TP 3.3.3), May 31, 2018
-// Wed Jul 11, 2018 19:52:21 CDT
+// Sun Jul 22, 2018 22:30:30 CDT
 //:Author:    Kelvin R. Lawrence
 //:Email:     gfxman@yahoo.com
 :Numbered:
@@ -24,7 +24,7 @@ v280-preview, July 11, 2018
 :doctype: book
 :icons: font
 //:pdf-page-size: Letter
-:draftdate: July 11th 2018
+:draftdate: July 22nd 2018
 :tpvercheck: 3.3.3
 
 // NOTE1: I updated the paraiso-dark style so that source code with a style of text
@@ -454,6 +454,9 @@ Documentation::
 - A user guide, a tutorial and programming API documentation.
 - http://tinkerpop.apache.org/docs/current/
 - http://tinkerpop.apache.org/docs/current/reference/
+Useful Recipes::
+- A set of examples or "recipes" showing how to perform common graph oriented tasks using Gremlin queries.
+- http://tinkerpop.apache.org/docs/current/recipes/
 
 The programming interfaces allow providers of graph databases to build systems that
 are TinkerPop enabled and allow application programmers to write programs that talk
@@ -934,8 +937,8 @@ The full details of all the features contained in the 'air-routes' graph can be 
 by reading the comments at the start of the `air-routes.graphml` file or reading the
 `README.txt` file.
 
-The graph currently contains a total of 3,612 vertices and 49,894 edges. Of these
-3,367 vertices are airports, and 43,160 of the edges represent routes. While in big
+The graph currently contains a total of 3,619 vertices and 50,148 edges. Of these
+3,374 vertices are airports, and 43,400 of the edges represent routes. While in big
 data terms this is really a tiny graph, it is plenty big enough for us to build up
 and experiment with some very interesting Gremlin queries.
 
@@ -4609,9 +4612,22 @@ Below is what we get back as a result of running the query.
 
 Sometimes you will be looking for results that match the inverse condition of a
 'where' step. One way this can be achieved is to wrap the 'where' step inside of a
-'not' step, as shown below. We start in Austin (AUS) and find all outgoing routes.
-We then look at all incoming 'contains' edges to see which country each airport we
-can fly to is in that do not have the United States country code of 'US' .
+'not' step, as shown below. 
+
+NOTE: The double underscore prefix '"+++__.+++"' before the 'in' step is required as
+'in' is a reserved word in Groovy. If you are using the Gremlin Console and do not
+include the prefix you will get an error. This is explained in more detail in the
+"<<rword>>" section a bit later. The '"+++__.+++"' notation is actually a reference
+to a special TinkerPop Java class that has the name '"+++__+++"' (double underscore)
+but don't worry about that for the time being. In fact, for now, just think of
+'"+++__+++."' as meaning '"the result of the previous step"'. This will become
+important once we start looking at writing a Java program to issue Gremlin queries
+and is discussed in the "<<tpinterfaces>>" section quite a bit later on.
+
+The query starts by finding the Austin airport (AUS) and then finds all outgoing
+routes.  We then look at all incoming 'contains' edges to see which country each
+airport we can fly to is in. The 'not' step ensures that only airports that do not
+have the United States country code of 'US' are selected.
 
 [source,groovy]
 ----
@@ -7405,17 +7421,18 @@ take a look at the following query.
 ----
 g.V().has('code','AUS').in()
 ----
+
 That query does not cause an error and correctly returns all of the vertices that are
-connected by an incoming edge, to the 'AUS' vertex. There is no conflict of names here
-because it is clear that the 'in()' reference applies to the result of the has step.
-However, now take a look at this query.
+connected by an incoming edge, to the 'AUS' vertex. There is no conflict of names
+here because it is clear that the 'in' reference applies to the result of the has
+step.  However, now take a look at this query.
 
 [source,groovy]
 ----
 g.V().has('code','AUS').union(in(),out())
 ----
 
-In this case the 'in()' is on it's own and not 'dot connected' to a previous step.
+In this case the 'in' is on it's own and not 'dot connected' to a previous step.
 The Gremlin runtime (which remember is written in Groovy) will try to interpret this
 and will throw an error because it thinks this is a reference to its own 'in' method.
 To make this query work we have to adjust the syntax slightly as follows.
@@ -7424,9 +7441,10 @@ To make this query work we have to adjust the syntax slightly as follows.
 ----
 g.V().has('code','AUS').union(__.in(),out())
 ----
-Notice that I added the '"__."' (underscore underscore period) in front of the 'in()'.
-This is shorthand for '"the thing we are currently looking at"', so in this case, the
-result of the 'has' step.
+
+Notice that I added the '"__."' (underscore underscore period) in front of the 'in'
+step.  This is shorthand for '"the thing we are currently looking at"', so in this
+case, the result of the 'has' step.
 
 There are currently not too many Groovy reserved words to worry about. The three that
 you have to watch out for are 'in', 'not' and 'as' which have special meanings in
@@ -15428,18 +15446,21 @@ LBA Leeds
 [[randwalk]]
 Randomly walking a graph
 ~~~~~~~~~~~~~~~~~~~~~~~~
+
 When doing analysis of a graph sometimes you just want to randomly traverse or 'walk'
 parts of the graph. The example below shows a query that starts at the Austin (AUS)
-vertex and then randomly goes to five connected vertices from there.  The 'random walk' is
-achieved by picking a sample of one of the possible edges connected to  vertex (node) we are
-currently at and then moving to the vertex at the other end of that edge. Notice how
-to get the effect that we want that the edge is picked inside of a 'local' step.
+vertex and then randomly goes to five connected vertices from there.  The 'random
+walk' is achieved by picking a sample of one of the possible edges connected to yhe
+vertex we are currently at by sampling using the distance property of the edge and
+then moving to the vertex at the other end of that edge. 
 
 [source,groovy]
 ----
 // Random walk with five hops
-g.V().has('code','AUS').repeat(local(bothE('route').
-      sample(1).by('dist').otherV())).times(5).
+g.V().has('code','AUS').
+      repeat(bothE('route').
+         sample(1).by('dist').otherV()).
+      times(5).
       path().by('code').by('dist')
 ----
 
@@ -15459,6 +15480,64 @@ names of the other airports and the distances between them.
 
 [AUS,722,STL,717,DCA,893,RSW,1103,HPN,563,CLT]
 ----
+
+In the previous example, every random walk began at the same place. However, if we
+wanted a more random walk that starts from a different airport each time we could
+instead use a 'sample' step to at the start of the query to pick a random airport to
+start from out of the set of all vertices with an 'airport' label.
+
+[source,groovy]
+----
+// Random walk with five hops
+g.V().hasLabel('airport').sample(1).
+      repeat(bothE('route').
+        sample(1).by('dist').otherV()).
+      times(5).
+      path().by('code').by('dist')
+----
+
+When run five times , as shown below, each walk begins at a different airport.
+
+[source,groovy]
+----
+[OMA,1144,LGA,584,CVG,750,BOS,6682,NRT,5951,VCE]
+
+[CLE,244,ROC,263,JFK,8054,HKG,7952,BOS,7288,PVG]
+
+[EMA,1126,AGP,969,PMO,708,VIE,5684,NRT,5152,DOH]
+
+[SNN,387,LGW,1349,KBP,264,KHE,434,IST,2831,DEL]
+
+[ARN,1814,LEI,1232,PRG,433,BRU,1384,SVO,3598,PEK]
+----
+
+Another way to write the query involves the introduction of a 'local' step. In this
+case the 'repeat' step is applied against the current local state of the traversal.
+In this way we can achieve multiple random walks. The 'limit(5)' at the end of the
+query limits the number of random walks returned to just five. Note that if the
+'local' step was removed only one walk would occur.
+
+[source,groovy]
+----
+// Five random walks each of five hops
+g.V().hasLabel('airport').
+      repeat(local(bothE('route').
+        sample(1).by('dist').otherV())).
+      times(5).
+      path().by('code').by('dist').limit(5) 
+----
+
+When run, five results such as those shown below are returned.
+
+[source,groovy]
+----
+[ATL,1301,ASE,845,SFO,2580,MIA,596,ATL,546,PBI]
+[ANC,2547,PHX,1999,BWI,368,BOS,3576,CGN,4745,MIA]
+[AUS,922,CUN,931,SAT,248,DAL,1378,LGA,736,MKE]
+[BNA,630,DFW,1430,SJC,2110,ATL,2180,SEA,4868,AMS]
+[BOS,3838,MUC,4024,JFK,8054,HKG,858,YNZ,901,HRB]
+----
+
 
 [[unwantededges]]
 Finding unwanted parallel edges 
@@ -16285,6 +16364,17 @@ When working with a 'sack' the operators like 'sum' and 'assign' are defined in 
 |addAll  | Operator.addAll|sack(Operator.addAll)
 |and     | Operator.and   |sack(Operator.and)
 |or      | Operator.or    |sack(Operator.or)
+|==============================================================================
+
+The 'Direction' Enum defines constants that are used in association with edge
+direction.
+
+.Direction
+[cols="1,1,3"]
+|==============================================================================
+|IN      | Direction.IN   | myEdge.vertices(Direction.IN)
+|OUT     | Direction.OUT  | myEdge.vertices(Direction.OUT)
+|BOTH    | Direction.BOTH | myEdge.vertices(Direction.BOTH)
 |==============================================================================
 
 Another useful tip, that was shared on the Gremlin Users mailing list, is that you
@@ -19684,7 +19774,7 @@ Connecting to a Gremlin Server from Java using 'withRemote'
 
 While it is perfectly possible to work directly with the JSON returned from a Gremlin
 Server it is often more desirable to have the results placed directly into variables
-of the appropriate type. It the appropriate Grelmin language driver exists for the
+of the appropriate type. If the appropriate Grelmin language driver exists for the
 programming language that you are using, this is quite easy to setup. In this section
 we will look at connecting to a Gremlin Server from a Java application and taking
 advantage of the 'withRemote' capability that TinkerPop provides.
